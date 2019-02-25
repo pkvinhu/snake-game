@@ -8,7 +8,6 @@ class Grid extends Component {
         direction: 40,
         gaming: false,
         food: [],
-        movementTracker: {},
         gameover: false,
         points: 0
     }
@@ -172,7 +171,7 @@ class Grid extends Component {
 
     endGame = () => {
         console.log("end game called")
-        this.startGame();
+        if (this.moveSnakeInterval) clearInterval(this.moveSnakeInterval);
         this.setState({ gaming: 'false', gameover: true })
     }
     
@@ -196,14 +195,15 @@ class Grid extends Component {
                     className="grid-container">
                     {this.state.gameover && (
                         <div id="gameover-overlay">
-                            <h4>
+                            <h3>Score: {this.state.points}</h3>
+                            <h5>
                                 Game Over! Play again?
-                            </h4>
-                            <button 
+                            </h5>
+                            {/* <button 
                                     className="btn" 
                                     onClick={handleClick}>
                                     New Game
-                            </button>
+                            </button> */}
                         </div>
                     )}
                     {this.state.grid.map((row, i) => {
