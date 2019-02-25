@@ -4,7 +4,7 @@ import '../App.css';
 class Grid extends Component {
     state = {
         grid: new Array(21).fill([]).map(each => each = new Array(21).fill(0)),
-        snake: [[10, 10]],
+        snake: [],
         direction: 40,
         gaming: false,
         food: [],
@@ -21,8 +21,9 @@ class Grid extends Component {
 
     handleClick = (evt) => {
         this.startGame();
-        this.moveSnakeInterval = setInterval(this.snakeMove, 300);
+        this.moveSnakeInterval = setInterval(this.snakeMove, 200);
         this.foodMixer();
+        this.el.focus();
     }
 
     foodMixer = () => {
@@ -34,8 +35,7 @@ class Grid extends Component {
 
     startGame = () => {
         if (this.moveSnakeInterval) clearInterval(this.moveSnakeInterval);
-        this.setState({ gameover: false })
-        // if (this.moveFoodTimeout) clearTimeout(this.moveFoodTimeout)
+        this.setState({ snake: [[10, 10]], gameover: false, points: 0 })
     }
 
     snakeMove = () => {
@@ -68,9 +68,9 @@ class Grid extends Component {
         })]
 
         this.setState({ snake: newSnake });
-    
+        
           this.checkIfAteFood(newSnake);
-          if (!this.isValid(newSnake[0]) || !this.doesntOverlap(newSnake[0])) {
+          if (!this.isValid(newSnake[0]) || !this.doesntOverlap(newSnake[0], newSnake.slice(1))) {
             // end the game
             this.endGame()
           } 
@@ -78,20 +78,21 @@ class Grid extends Component {
 
     isValid = (head) => {
         //check if next move is valid/does not hit borders
-        if(head[0] < 0 || head[0] > 20 || head[1] < 0 || head[1] > 20){
-            return false
-        } else {
-            return true
-        }
+        // console.log(head, head[0] < 21, head[0] > -1, head[1] < 21, head[1] > -1);
+        return (head[0] < 21 && head[0] > -1 && head[1] < 21 && head[1] > -1)
     }
 
-    doesntOverlap = (head) => {
+    doesntOverlap = (head, body) => {
         // check if next move hits snake body
-        if(this.state.snake.slice(1).indexOf(head) > -1){
-            return false
-        } else {
-            return true
+        // console.log("coming from doesnt overlap: ", body.indexOf(head) === -1, body)
+        if(body.length && head.length){
+            for(let i = 0; i < body.length; i++){
+                if(body[i][0] === head[0] && body[i][1] === head[1]){
+                    return false
+                }
+            }
         }
+        return true
     }
 
     checkFood = (i, j) => {
@@ -102,28 +103,46 @@ class Grid extends Component {
     checkIfAteFood = (newSnake) => {
         const { food } = this.state;
         if(newSnake[0][0] === food[0] && newSnake[0][1] === food[1]) {
-            //add to head
+            //add to tail
             let grownSnake = [];
-            // set in the new "head" of the snake
-            switch (this.state.direction) {
-                // right
-                case 39:
-                    grownSnake[0] = [this.state.snake[0][0], this.state.snake[0][1] + 1];
-                    break;
-                // left
-                case 37:
-                    grownSnake[0] = [this.state.snake[0][0], this.state.snake[0][1] - 1];
-                    break;
-                // down
-                case 40:
-                    grownSnake[0] = [this.state.snake[0][0] + 1, this.state.snake[0][1]];
-                    break;
-                // up
-                case 38:
-                    grownSnake[0] = [this.state.snake[0][0] - 1, this.state.snake[0][1]];
-                    break;
+            let lastSegment = newSnake.slice(newSnake.length-2)
+            console.log(lastSegment)
+            // set in the new "tail" of the snake
+            if(newSnake.length <= 1){
+                switch (this.state.direction) {
+                    // right
+                    case 39:
+                        grownSnake[0] = [this.state.snake[0][0], this.state.snake[0][1] - 1];
+                        break;
+                    // left
+                    case 37:
+                        grownSnake[0] = [this.state.snake[0][0], this.state.snake[0][1] + 1];
+                        break;
+                    // down
+                    case 40:
+                        grownSnake[0] = [this.state.snake[0][0] - 1, this.state.snake[0][1]];
+                        break;
+                    // up
+                    case 38:
+                        grownSnake[0] = [this.state.snake[0][0] + 1, this.state.snake[0][1]];
+                        break;
+                }
             }
-            grownSnake = [...grownSnake, ...newSnake]
+            else if(newSnake.length > 1){
+                if(lastSegment[0][0]<lastSegment[1][0]){
+                    grownSnake = [lastSegment[1][0]+1, lastSegment[1][1]];
+                }
+                else if(lastSegment[0][0]>lastSegment[1][0]){
+                    grownSnake = [lastSegment[1][0]-1, lastSegment[1][1]]
+                }
+                else if(lastSegment[0][1]<lastSegment[1][1]){
+                    grownSnake=[lastSegment[0][0], lastSegment[1][1]+1]
+                }
+                else if(lastSegment[0][1]>lastSegment[1][1]){
+                    grownSnake=[lastSegment[0][0], lastSegment[1][1]-1]
+                }
+            }
+            grownSnake = [...newSnake, ...grownSnake]
             //add to points count
             this.setState({ snake: grownSnake, points: this.state.points+=1 })
             this.foodMixer();
@@ -137,7 +156,7 @@ class Grid extends Component {
     }
 
     changeDirection = ({ keyCode }) => {
-        console.log(keyCode)
+        // console.log(keyCode)
         const { direction } = this.state;
         let checkDir = true;
         [[37, 39], [38, 40]].forEach(dir => {
@@ -145,25 +164,21 @@ class Grid extends Component {
               checkDir = false;
             }
         });
-        console.log(checkDir)
+        // console.log(checkDir)
         if(checkDir) {
             this.setState({ direction: keyCode })
         }
     }
 
     endGame = () => {
+        console.log("end game called")
+        this.startGame();
         this.setState({ gaming: 'false', gameover: true })
     }
-
-    // componentDidMount(){
-    //     if(this.state.gaming) {
-    //         this.startTimer();
-    //     }
-    // }
     
     render() {
         const { handleClick, changeDirection } = this;
-        console.log(this.state)
+        // console.log(this.state)
         return (
             <div 
                 class="root"
@@ -179,6 +194,18 @@ class Grid extends Component {
                 </div>
                 <div 
                     className="grid-container">
+                    {this.state.gameover && (
+                        <div id="gameover-overlay">
+                            <h4>
+                                Game Over! Play again?
+                            </h4>
+                            <button 
+                                    className="btn" 
+                                    onClick={handleClick}>
+                                    New Game
+                            </button>
+                        </div>
+                    )}
                     {this.state.grid.map((row, i) => {
                         return (
                             <div className="row1">
